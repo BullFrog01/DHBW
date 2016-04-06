@@ -1,5 +1,6 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
   void yyerror(char *message);
 %}
 
@@ -15,31 +16,46 @@
 %token COND
 %token EQUAL SMALLER GREATER
 %token VAR CONST NUM
+%token END
 
 %type <integer> NUM
 %type <character> VAR
 %type <character> CONST
 
+%left COMMA;
+
 %%
-S : A B;
+S : A END {printf("Test");};
 
-A : R POINT
-| R COND RL POINT;
+A : B POINT
+| B COND C POINT;
 
-RL : R
-|RL COMMA R;
+B : CONST ARGBEGIN D ARGEND;
 
-R : CONST ARGOPEN L ARGCLOSE;
+D : VAR
+| LISTBEGIN LISTEND
+| LISTBEGIN E LISTEND
+| D COMMA D;
 
-L : L COMMA C
-| C;
 
-C : LISTBEGIN K LISTEND
+E : VAR
+| VAR PIPE R;
+
+R : LISTBEGIN LISTEND
+| LISTBEGIN E LISTEND
 | VAR;
 
-K : C PIPE K
-| C;
+C : B
+| B COMMA B
+| F
+| F COMMA B;
 
+F : VAR G VAR
+| VAR G G VAR;
+
+G : GREATER
+| SMALLER
+| EQUAL
 %%
 int main(int argc, char **argv)
 {

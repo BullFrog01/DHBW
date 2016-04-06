@@ -1,5 +1,6 @@
 %{
 #include "y.tab.h"
+#include <stdlib.h>
 %}
 
 %%
@@ -14,6 +15,9 @@
 \=		{	return EQUAL;		}
 \.		{	return POINT;		}
 \|		{	return PIPE;		}
-[A-Z][A-Za-z0-9]*	{return VAR;}
-[a-z][A-Za-z0-9]*	{return CONST;}
+[A-Z][A-Za-z0-9]* 	{return VAR;}
+[a-z][A-Za-z0-9]*	{sscanf(yytext, "%s", yylval.character); return CONST;}
 [1-9][0-9]*|0		{return NUM;}
+\\n		{	return END;}
+[ ] ;
+
