@@ -15,9 +15,11 @@
 \=		{	return EQUAL;		}
 \.		{	return POINT;		}
 \|		{	return PIPE;		}
-[A-Z][A-Za-z0-9]* 	{return VAR;}
-[a-z][A-Za-z0-9]*	{sscanf(yytext, "%s", yylval.character); return CONST;}
+[A-Z][A-Za-z0-9]* 	{yylval.character = strdup(yytext);
+						return VAR;}
+[a-z][A-Za-z0-9]*	{yylval.character = strdup(yytext); 
+						return CONST;}
 [1-9][0-9]*|0		{return NUM;}
-\\n		{	return END;}
-[ ] ;
+\n		{	return END;}
+[ ]+ ;
 
