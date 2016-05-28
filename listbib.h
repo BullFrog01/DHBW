@@ -1,118 +1,193 @@
-#ifndef LISTBIB
-#define LISTBIB
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-//Text in Listenelementen
-typedef struct lin_list_lower
+/**
+ * @param payload Variable
+ * @param next    Pointer auf nächstes Listenelement
+ */
+typedef struct varlist
 {
-	char *payload; //mehr als char??
-	struct lin_list_lower *next; // Zeiger auf das nächste Element
-} LinListCell_lower, *LinList_lower_p;
+	char *payload;
+	struct varlist *next;
+	struct varlist *previous;
+} VarlistCell, *Varlist_p;
 
-//Terme als Listenelemente
-typedef struct lin_list_upper
+/**
+ * @param function Funktion
+ * @param varlist  Pointer auf Variablenliste (bzw. erste Zelle der Liste)
+ * @param next     Pointer auf nächstes Listenelement
+ */
+typedef struct termlist
 {
-	char *payloadU;
-	LinList_lower_p lowerList;
-	struct lin_list_upper *next; // Zeiger auf das nächste Element
-} LinListCell_upper, *LinList_upper_p;
+	char *function;
+	VarlistCell *varlist;
+	struct termlist *next;
+	struct termlist *previous;
+} TermlistCell, *Termlist_p;
 
-LinList_upper_p upperlist_p = null;
+/**
+ * @param termlist Liste der Terme in der Klausel (Zeile)
+ * @param next     Pointer auf nächstes Listenelement
+ */
+typedef struct clause
+{
+	TermlistCell *termlist;
+	struct clause *next;
+	struct clause *previous;
+} ClauseCell, *Clause_p;
 
-// erstelle Liste mit erstem Element
-LinList_upper_p createList(char *payloadU){
-	LinList_upper_p list_p;
-	list_p = (LinList_upper_p) malloc(sizeof(LinListCell_upper));
-	list_p->payloadU = payloadU;
-	list_p->next = NULL;
-	//printf("%s", list_p->payloadU);
+
+// ---------- Varlist ----------
+
+/**
+ * @param  payload    Variable/Parameter
+ * @return newVarlist Pointer auf neu erstellte Varlist
+ */
+Varlist_p createVarlistCell(char *payload) 
+{
+	Varlist_p newVarlist;
+	newVarlist = malloc(sizeof(VarlistCell));
 	
- 	return list_p;
+	newVarlist->payload = strdup(payload);
+	newVarlist->next = NULL;
+	newVarlist->previous = NULL;
+
+	return newVarlist;
 }
 
-// übergeben werden der Beginn der Liste und ein Wert. Erstellt wird ein neues Listenelement, das den Wert enthält. Dieses wird der Liste angehängt
-void appendUpper(LinList_upper_p anchor, LinList_upper_p item)
+/**
+ * Neue Zelle wird einer Variabel-Liste vorne angehängt
+ * @param anchor  Erstes Listenelement
+ * @param newVar  Listenelement das angehängt werden soll
+ * @return anchor Pointer 
+ */
+Varlist_p addVarlistCell(Varlist_p *anchor, Varlist_p newVar)
 {
-	while (anchor->next != NULL)
-	{
-		anchor = anchor->next;
-	}
-	anchor->next = item;	
+	newVar->next = *anchor;
+	newVar->previous = NULL;
+	if (*anchor != NULL)
+		(*anchor)->previous = newVar;	
+		
+	return newVar;
 }
 
-void printUpper(LinList_upper_p list) 
+/**
+ * Weil alle Listen von hinten nach vorne gefüllt werden, kann eine Liste
+ * einer anderen einfach vorne angehängt werden
+ * @param  anchorList Pointer auf aktuelle Varlist
+ * @param  appendList Pointer auf Liste die an Varlist angehängt werden soll
+ * @return appendList Pointer auf erstes Listenelement der neuen Liste
+ */
+Varlist_p appendVarlist(Varlist_p anchorList, Varlist_p appendList)
 {
-	while (list->next != NULL)
-	{
-		printf("%s", list->payloadU);
-		list = list->next;
-	}
+	if (anchorList == NULL)
+		return appendList;
+	if (appendList == NULL)
+		return anchorList;
+
+	Varlist_p current = appendList;
+	while (current->next != NULL)
+		current = current->next;
+	current->next = anchorList;
+
+	return appendList;
 }
 
 
+// ---------- Termlist ----------
 
-
-
-
-
-/*
-LinList_p LinListAllocCell(char *payload)
+/**
+ * @param  varlistAnchor Pointer auf Varlist
+ * @param  function      Funktion zu der die Termliste gehört
+ * @return newTermlist   Neue Termliste
+ */
+Termlist_p createTermlistCell(Varlist_p varlistAnchor, char *function)
 {
-	LinList_p list_p;
-	list_p = (LinList_p) malloc(sizeof(LinListCell));
-	list_p->payload = payload;
-	list_p.next = null;
-	return list_p;
-}
-
-void LinListFreeCell(LinList_p junk)
-{
-	printf(junk->payload);
-	free(junk);
-}
-
-void LinListFree(LinList_p junk)
-{
-	LinList_p next;
-	next = junk->next;
+	Termlist_p newTermlist;
+	newTermlist = malloc(sizeof(TermlistCell));
 	
-	while (next)
-	{
-		next = junk->next;
-		LinListFreeCell(junk);
-		junk = next;
-	}
+	newTermlist->function = strdup(function);
+	newTermlist->varlist = varlistAnchor;
+	newTermlist->next = NULL;
+	newTermlist->previous = NULL;
+
+	return newTermlist;
 }
 
-LinList_p LinListInsertFirst(LinList_p *anchor, LinList_p newcell)
+/**
+ * @param  anchor  Beginn der Termliste
+ * @param  newTerm Zelle, die der Termliste vorne angehängt wird
+ * @return anchor  Neuer Beginn der Termliste
+ */
+Termlist_p addTermlistCell(Termlist_p *anchor, Termlist_p newTerm)
 {
-	newcell->next = *anchor;
-	*anchor = newcell;
+	newTerm->next = *anchor;
+	newTerm->previous = NULL;
+	if (*anchor != NULL)
+		(*anchor)->previous = newTerm;
+	*anchor = newTerm;
+
+	return *anchor;
+}
+
+
+/**
+ * @param  anchorList Aktueller Listenbeginn
+ * @param  appendList Liste die angehängt werden soll
+ * @return appendList Neuer Listenbeginn
+ */
+Termlist_p appendTermlist(Termlist_p anchorList, Termlist_p appendList)
+{
+	if (anchorList == NULL)
+		return appendList;
+	if (appendList == NULL)
+		return anchorList;
+
+	Termlist_p current = appendList;
+	while (current->next != NULL)
+		current = current->next;
+	current->next = anchorList;
+	anchorList->previous = current;
+
+	return appendList;
+}
+
+
+// ---------- Clauselist ----------
+
+// Globale Anker-Deklaration
+Clause_p clauseAnchor = NULL;
+
+/**
+ * @param  anchorTermlist Termliste der Klausel
+ * @return newClause      Neue Klausel
+ */
+Clause_p createClause(Termlist_p anchorTermlist)
+{
+	Clause_p newClause;
+	newClause = malloc(sizeof(ClauseCell));
+
+	newClause->termlist = anchorTermlist;	
+	newClause->next = NULL;
+	newClause->previous = NULL;
 	
-	return newcell;
+	return newClause;
 }
 
-LinList_p LinListInsertLast(LinList_p *anchor, LinList_p newcell)
+/**
+ * @param  anchorClauselist Beginn der Klauselliste
+ * @param  newClause        Neue Klausel die der Klauselliste angehängt werden soll
+ * @return anchorClauselist Neuer Beginn der Klauselliste
+ */
+Clause_p addClause(Clause_p *anchorClauselist, Clause_p newClause)
 {
-	while (anchor != );
-	*anchor = newcell;
-	
-	return newcell;
+	newClause->next = *anchorClauselist;
+	newClause->previous = NULL;
+	if (*anchorClauselist != NULL)
+		(*anchorClauselist)->previous = newClause;
+	*anchorClauselist = newClause;
+
+	return *anchorClauselist;
 }
 
-LinList_p LinListExtractFirst(LinList_p anchor)
-{
-	LinList_p first = anchor;
-	anchor = anchor->next;
-	
-	return first;
-}
-
-LinList_p NewLinList()
-{
-	return LinListAllocCell(null);
-}
-*/
-
-#endif
